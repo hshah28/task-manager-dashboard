@@ -1,0 +1,17 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+*.d.ts
+next-env.d.ts
+**/webpack.js
+**/buildManifest.js
+**/ssgManifest.js
+**/validator.ts
+**/routes.d.ts
+**/chunks/**
+**/static/**
+**/development/**
+**/production/**
+**/types/**
