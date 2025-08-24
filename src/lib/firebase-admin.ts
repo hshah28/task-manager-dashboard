@@ -14,12 +14,13 @@ if (process.env.FIREBASE_ADMIN_PROJECT_ID) {
   };
 
   // Initialize Firebase Admin
-  app = getApps().length === 0 
-    ? initializeApp({
-        credential: cert(firebaseAdminConfig),
-        databaseURL: `https://${process.env.FIREBASE_ADMIN_PROJECT_ID}.firebaseio.com`,
-      })
-    : getApps()[0];
+  app =
+    getApps().length === 0
+      ? initializeApp({
+          credential: cert(firebaseAdminConfig),
+          databaseURL: `https://${process.env.FIREBASE_ADMIN_PROJECT_ID}.firebaseio.com`,
+        })
+      : getApps()[0];
 
   // Initialize Firebase Admin services
   adminAuth = getAuth(app);

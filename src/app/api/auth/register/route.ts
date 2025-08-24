@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase-admin";
+import { NextRequest, NextResponse } from 'next/server';
+import { adminAuth } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,14 +7,14 @@ export async function POST(request: NextRequest) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: 'Email and password are required' },
         { status: 400 }
       );
     }
 
     if (!adminAuth) {
       return NextResponse.json(
-        { error: "Firebase admin auth not initialized" },
+        { error: 'Firebase admin auth not initialized' },
         { status: 500 }
       );
     }
@@ -36,9 +36,9 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    console.error("Registration error:", error);
+    console.error('Registration error:', error);
     const errorMessage =
-      error instanceof Error ? error.message : "Registration failed";
+      error instanceof Error ? error.message : 'Registration failed';
     return NextResponse.json({ error: errorMessage }, { status: 400 });
   }
 }

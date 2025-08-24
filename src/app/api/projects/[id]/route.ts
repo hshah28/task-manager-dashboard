@@ -8,12 +8,12 @@ interface RouteParams {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const { status, title, dueDate } = await request.json();
+    const { name, description } = await request.json();
     const authHeader = request.headers.get('authorization');
 
-    if (!status && !title && dueDate === undefined) {
+    if (!name || !description) {
       return NextResponse.json(
-        { error: 'At least one field to update is required' },
+        { error: 'Name and description are required' },
         { status: 400 }
       );
     }
@@ -38,49 +38,44 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const decodedToken = await adminAuth.verifyIdToken(token);
     const userId = decodedToken.uid;
 
-    const taskRef = adminDb.collection('tasks').doc(id);
+    const projectRef = adminDb.collection('projects').doc(id);
 
-    // Check if task exists and belongs to user
-    const taskDoc = await taskRef.get();
-    if (!taskDoc.exists) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    // Check if project exists and belongs to user
+    const projectDoc = await projectRef.get();
+    if (!projectDoc.exists) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    const taskData = taskDoc.data();
-    if (taskData?.userId !== userId) {
+    const projectData = projectDoc.data();
+    if (projectData?.userId !== userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const updateData: Record<string, any> = {
+    const updateData = {
+      name,
+      description,
       updatedAt: new Date(),
     };
 
-    if (status) updateData.status = status;
-    if (title) updateData.title = title;
-    if (dueDate !== undefined) {
-      updateData.dueDate = dueDate ? new Date(dueDate) : null;
-    }
+    await projectRef.update(updateData);
 
-    await taskRef.update(updateData);
-
-    // Get the updated task
-    const updatedTaskDoc = await taskRef.get();
-    const updatedTask = {
-      id: updatedTaskDoc.id,
-      ...updatedTaskDoc.data(),
-      dueDate: updatedTaskDoc.data()?.dueDate?.toDate(),
-      createdAt: updatedTaskDoc.data()?.createdAt?.toDate(),
-      updatedAt: updatedTaskDoc.data()?.updatedAt?.toDate(),
+    // Get the updated project
+    const updatedProjectDoc = await projectRef.get();
+    const updatedProject = {
+      id: updatedProjectDoc.id,
+      ...updatedProjectDoc.data(),
+      createdAt: updatedProjectDoc.data()?.createdAt?.toDate(),
+      updatedAt: updatedProjectDoc.data()?.updatedAt?.toDate(),
     };
 
     return NextResponse.json({
       success: true,
-      task: updatedTask,
+      project: updatedProject,
     });
   } catch (error: unknown) {
-    console.error('Update task error:', error);
+    console.error('Update project error:', error);
     const errorMessage =
-      error instanceof Error ? error.message : 'Failed to update task';
+      error instanceof Error ? error.message : 'Failed to update project';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
@@ -110,29 +105,43 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const decodedToken = await adminAuth.verifyIdToken(token);
     const userId = decodedToken.uid;
 
-    const taskRef = adminDb.collection('tasks').doc(id);
+    const projectRef = adminDb.collection('projects').doc(id);
 
-    // Check if task exists and belongs to user
-    const taskDoc = await taskRef.get();
-    if (!taskDoc.exists) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    // Check if project exists and belongs to user
+    const projectDoc = await projectRef.get();
+    if (!projectDoc.exists) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    const taskData = taskDoc.data();
-    if (taskData?.userId !== userId) {
+    const projectData = projectDoc.data();
+    if (projectData?.userId !== userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    await taskRef.delete();
+    // Delete the project
+    await projectRef.delete();
+
+    // Also delete all tasks associated with this project
+    const tasksRef = adminDb.collection('tasks');
+    const tasksQuery = await tasksRef
+      .where('projectId', '==', id)
+      .where('userId', '==', userId)
+      .get();
+
+    const batch = adminDb.batch();
+    tasksQuery.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
 
     return NextResponse.json({
       success: true,
-      message: 'Task deleted successfully',
+      message: 'Project and associated tasks deleted successfully',
     });
   } catch (error: unknown) {
-    console.error('Delete task error:', error);
+    console.error('Delete project error:', error);
     const errorMessage =
-      error instanceof Error ? error.message : 'Failed to delete task';
+      error instanceof Error ? error.message : 'Failed to delete project';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

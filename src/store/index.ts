@@ -9,7 +9,7 @@ export const store = configureStore({
     projects: projectReducer,
     tasks: taskReducer,
   },
-  middleware: (getDefaultMiddleware) =>
+  middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
       serializableCheck: {
         ignoredActions: ['persist/PERSIST'],

@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase-admin";
+import { NextResponse } from 'next/server';
+import { adminAuth } from '@/lib/firebase-admin';
 
 export async function POST() {
   try {
     if (!adminAuth) {
       return NextResponse.json(
-        { error: "Firebase admin auth not initialized" },
+        { error: 'Firebase admin auth not initialized' },
         { status: 500 }
       );
     }
@@ -16,12 +16,12 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: "Logged out successfully",
+      message: 'Logged out successfully',
     });
   } catch (error: unknown) {
-    console.error("Logout error:", error);
+    console.error('Logout error:', error);
     const errorMessage =
-      error instanceof Error ? error.message : "Logout failed";
+      error instanceof Error ? error.message : 'Logout failed';
     return NextResponse.json({ error: errorMessage }, { status: 400 });
   }
 }

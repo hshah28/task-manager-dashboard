@@ -13,68 +13,150 @@ const initialState: TaskState = {
   error: null,
 };
 
+// Helper function to get auth token
+const getAuthToken = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('authToken');
+  }
+  return null;
+};
+
 export const fetchTasks = createAsyncThunk(
   'tasks/fetchTasks',
   async (projectId: string) => {
-    const response = await fetch(`/api/tasks?projectId=${projectId}`);
-    
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token');
+    }
+
+    const response = await fetch(`/api/tasks?projectId=${projectId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
     if (!response.ok) {
       throw new Error('Failed to fetch tasks');
     }
-    
-    return await response.json();
+
+    const data = await response.json();
+    return data;
   }
 );
 
 export const createTask = createAsyncThunk(
   'tasks/createTask',
-  async ({ title, projectId, dueDate }: { title: string; projectId: string; dueDate?: string }) => {
+  async ({
+    title,
+    projectId,
+    dueDate,
+  }: {
+    title: string;
+    projectId: string;
+    dueDate?: string;
+  }) => {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token');
+    }
+
     const response = await fetch('/api/tasks', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ title, projectId, dueDate }),
     });
-    
+
     if (!response.ok) {
       throw new Error('Failed to create task');
     }
-    
-    return await response.json();
+
+    const data = await response.json();
+    return data;
   }
 );
 
 export const updateTaskStatus = createAsyncThunk(
   'tasks/updateTaskStatus',
   async ({ taskId, status }: { taskId: string; status: Task['status'] }) => {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token');
+    }
+
     const response = await fetch(`/api/tasks/${taskId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ status }),
     });
-    
+
     if (!response.ok) {
       throw new Error('Failed to update task');
     }
-    
-    return await response.json();
+
+    const data = await response.json();
+    return data;
+  }
+);
+
+export const updateTask = createAsyncThunk(
+  'tasks/updateTask',
+  async ({
+    taskId,
+    title,
+    dueDate,
+  }: {
+    taskId: string;
+    title?: string;
+    dueDate?: string;
+  }) => {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token');
+    }
+
+    const response = await fetch(`/api/tasks/${taskId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ title, dueDate }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update task');
+    }
+
+    const data = await response.json();
+    return data;
   }
 );
 
 export const deleteTask = createAsyncThunk(
   'tasks/deleteTask',
   async (taskId: string) => {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token');
+    }
+
     const response = await fetch(`/api/tasks/${taskId}`, {
       method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
-    
+
     if (!response.ok) {
       throw new Error('Failed to delete task');
     }
-    
+
     return { taskId };
   }
 );
@@ -83,14 +165,17 @@ const taskSlice = createSlice({
   name: 'tasks',
   initialState,
   reducers: {
-    clearError: (state) => {
+    clearError: state => {
       state.error = null;
     },
+    clearTasks: state => {
+      state.tasks = [];
+    },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
       // Fetch Tasks
-      .addCase(fetchTasks.pending, (state) => {
+      .addCase(fetchTasks.pending, state => {
         state.loading = true;
         state.error = null;
       })
@@ -112,7 +197,9 @@ const taskSlice = createSlice({
       })
       // Update Task Status
       .addCase(updateTaskStatus.fulfilled, (state, action) => {
-        const index = state.tasks.findIndex(task => task.id === action.payload.task.id);
+        const index = state.tasks.findIndex(
+          task => task.id === action.payload.task.id
+        );
         if (index !== -1) {
           state.tasks[index] = action.payload.task;
         }
@@ -120,9 +207,23 @@ const taskSlice = createSlice({
       .addCase(updateTaskStatus.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to update task';
       })
+      // Update Task
+      .addCase(updateTask.fulfilled, (state, action) => {
+        const index = state.tasks.findIndex(
+          task => task.id === action.payload.task.id
+        );
+        if (index !== -1) {
+          state.tasks[index] = action.payload.task;
+        }
+      })
+      .addCase(updateTask.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to update task';
+      })
       // Delete Task
       .addCase(deleteTask.fulfilled, (state, action) => {
-        state.tasks = state.tasks.filter(task => task.id !== action.payload.taskId);
+        state.tasks = state.tasks.filter(
+          task => task.id !== action.payload.taskId
+        );
       })
       .addCase(deleteTask.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to delete task';
@@ -130,5 +231,5 @@ const taskSlice = createSlice({
   },
 });
 
-export const { clearError } = taskSlice.actions;
+export const { clearError, clearTasks } = taskSlice.actions;
 export default taskSlice.reducer;

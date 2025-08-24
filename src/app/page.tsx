@@ -3,38 +3,26 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppSelector } from '@/store/hooks';
-import { Box, CircularProgress, Typography } from '@mui/material';
+
+import AuthLoadingScreen from '@/components/AuthLoadingScreen';
 
 export default function Home() {
   const router = useRouter();
-  const { user, loading } = useAppSelector((state) => state.auth);
+  const { user, loading, initialized } = useAppSelector(state => state.auth);
 
   useEffect(() => {
-    if (!loading) {
+    if (initialized && !loading) {
       if (user) {
         router.push('/dashboard');
       } else {
         router.push('/auth/login');
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, initialized, router]);
 
-  if (loading) {
-    return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        minHeight="100vh"
-        gap={2}
-      >
-        <CircularProgress size={60} />
-        <Typography variant="h6" color="text.secondary">
-          Loading...
-        </Typography>
-      </Box>
-    );
+  // Show loading screen while auth is being determined
+  if (!initialized || loading) {
+    return <AuthLoadingScreen />;
   }
 
   return null;
