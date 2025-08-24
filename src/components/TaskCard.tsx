@@ -28,6 +28,9 @@ interface TaskCardProps {
     newStatus: 'Todo' | 'In Progress' | 'Done'
   ) => void;
   onMenuClick: (event: React.MouseEvent<HTMLElement>, task: Task) => void;
+  onDragStart?: (e: React.DragEvent, task: Task) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  isDragging?: boolean;
 }
 
 const statusOrder = ['Todo', 'In Progress', 'Done'];
@@ -63,6 +66,9 @@ export default function TaskCard({
   isStatusChanging,
   onStatusChange,
   onMenuClick,
+  onDragStart,
+  onDragEnd,
+  isDragging = false,
 }: TaskCardProps) {
   const handleStatusChange = () => {
     const currentIndex = statusOrder.indexOf(task.status);
@@ -76,16 +82,44 @@ export default function TaskCard({
   return (
     <Card
       elevation={2}
+      draggable
+      onDragStart={e => onDragStart?.(e, task)}
+      onDragEnd={onDragEnd}
       sx={{
         mb: 2,
-        cursor: 'pointer',
+        cursor: isDragging ? 'grabbing' : 'grab',
         transition: 'all 0.3s ease',
         '&:hover': {
           elevation: 8,
           transform: 'translateY(-2px)',
           boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
         },
+        '&:active': {
+          cursor: 'grabbing',
+        },
         opacity: isStatusChanging === task.id ? 0.7 : 1,
+        transform: isDragging ? 'translateY(-8px) scale(1.05)' : 'none',
+        boxShadow: isDragging
+          ? '0 20px 60px rgba(0,0,0,0.4)'
+          : '0 2px 8px rgba(0,0,0,0.1)',
+        zIndex: isDragging ? 1000 : 'auto',
+        position: isDragging ? 'relative' : 'static',
+        '&::before': isDragging
+          ? {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              border: '2px dashed',
+              borderColor: 'primary.main',
+              borderRadius: 1,
+              bgcolor: 'primary.50',
+              opacity: 0.3,
+              zIndex: -1,
+            }
+          : {},
       }}
     >
       <CardContent sx={{ p: 3 }}>

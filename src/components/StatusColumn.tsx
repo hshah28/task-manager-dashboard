@@ -23,6 +23,9 @@ interface StatusColumnProps {
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   onDragLeave: () => void;
+  onDragStart: (e: React.DragEvent, task: Task) => void;
+  onDragEnd: (e: React.DragEvent) => void;
+  draggedTaskId?: string | null;
 }
 
 const getStatusGradient = (status: string) => {
@@ -74,6 +77,9 @@ export default function StatusColumn({
   onDragOver,
   onDrop,
   onDragLeave,
+  onDragStart,
+  onDragEnd,
+  draggedTaskId,
 }: StatusColumnProps) {
   return (
     <Grid item xs={12} md={4}>
@@ -82,7 +88,7 @@ export default function StatusColumn({
         sx={{
           borderRadius: 3,
           bgcolor: isDragOver ? 'action.hover' : 'background.paper',
-          border: isDragOver ? '2px dashed' : '1px solid',
+          border: isDragOver ? '3px dashed' : '1px solid',
           borderColor: isDragOver ? 'primary.main' : 'divider',
           minHeight: 400,
           position: 'relative',
@@ -101,6 +107,10 @@ export default function StatusColumn({
             elevation: 4,
             transform: 'translateY(-2px)',
           },
+          transform: isDragOver ? 'scale(1.02)' : 'none',
+          boxShadow: isDragOver
+            ? '0 8px 32px rgba(25, 118, 210, 0.2)'
+            : '0 2px 8px rgba(0,0,0,0.1)',
         }}
         onDragOver={onDragOver}
         onDrop={onDrop}
@@ -178,8 +188,35 @@ export default function StatusColumn({
                   isStatusChanging={isStatusChanging}
                   onStatusChange={onStatusChange}
                   onMenuClick={onMenuClick}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragEnd}
+                  isDragging={draggedTaskId === task.id}
                 />
               ))}
+            </Box>
+          )}
+
+          {isDragOver && (
+            <Box
+              sx={{
+                mt: 2,
+                p: 3,
+                border: '2px dashed',
+                borderColor: 'primary.main',
+                borderRadius: 2,
+                bgcolor: 'primary.50',
+                textAlign: 'center',
+                opacity: 0.8,
+                animation: 'pulse 1.5s infinite',
+              }}
+            >
+              <Typography
+                variant='body2'
+                color='primary.main'
+                fontWeight='bold'
+              >
+                Drop task here to move to {status}
+              </Typography>
             </Box>
           )}
         </Box>

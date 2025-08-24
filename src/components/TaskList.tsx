@@ -188,23 +188,59 @@ export default function TaskList({ projectId }: TaskListProps) {
   };
 
   // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, task: Task) => {
+    setDraggedTask(task);
+
+    // Set drag data for better compatibility
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', task.id);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    setDraggedTask(null);
+    setDragOverStatus(null);
+  };
+
   const handleDragOver = (e: React.DragEvent, status: string) => {
     e.preventDefault();
+
     if (draggedTask && draggedTask.status !== status) {
+      e.dataTransfer.dropEffect = 'move';
       setDragOverStatus(status);
+    } else {
+      e.dataTransfer.dropEffect = 'none';
+      setDragOverStatus(null);
     }
   };
 
   const handleDrop = async (e: React.DragEvent, newStatus: string) => {
     e.preventDefault();
-    if (draggedTask && draggedTask.status !== newStatus) {
+
+    if (!draggedTask) {
+      return;
+    }
+
+    // Check if the task is being moved to a different status
+    if (draggedTask.status === newStatus) {
+      setDraggedTask(null);
+      setDragOverStatus(null);
+      return;
+    }
+
+    try {
       await handleStatusChange(
         draggedTask.id,
         newStatus as 'Todo' | 'In Progress' | 'Done'
       );
+      showToast(
+        `Task "${draggedTask.title}" moved to ${newStatus} successfully!`
+      );
+    } catch (error) {
+      showToast('Failed to move task', 'error');
+    } finally {
+      setDraggedTask(null);
+      setDragOverStatus(null);
     }
-    setDraggedTask(null);
-    setDragOverStatus(null);
   };
 
   const handleDragLeave = () => {
@@ -299,6 +335,9 @@ export default function TaskList({ projectId }: TaskListProps) {
             onDragOver={e => handleDragOver(e, status)}
             onDrop={e => handleDrop(e, status)}
             onDragLeave={handleDragLeave}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            draggedTaskId={draggedTask?.id || null}
           />
         ))}
       </Grid>
@@ -368,6 +407,57 @@ export default function TaskList({ projectId }: TaskListProps) {
           100% {
             transform: rotate(360deg);
           }
+        }
+
+        @keyframes pulse {
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.05);
+            opacity: 0.8;
+          }
+        }
+
+        /* Drag and drop styles */
+        .dragging {
+          opacity: 0.5;
+          transform: rotate(5deg) scale(1.02);
+          z-index: 1000;
+        }
+
+        .drag-over {
+          background-color: rgba(25, 118, 210, 0.08) !important;
+          border: 2px dashed #1976d2 !important;
+          transform: scale(1.02);
+        }
+
+        /* Smooth transitions for drag and drop */
+        .task-card {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .status-column {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Drop zone pulse animation */
+        @keyframes dropZonePulse {
+          0%,
+          100% {
+            opacity: 0.6;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.02);
+          }
+        }
+
+        .drop-zone-active {
+          animation: dropZonePulse 1.5s ease-in-out infinite;
         }
       `}</style>
     </Box>
